@@ -3,7 +3,8 @@ from .. import schemas, models, database
 from fastapi import APIRouter, Depends, HTTPException, status
 from ..database import get_db
 from ..hashing import Hash
-from ..configs.tokenConfig import Settings
+from ..configs.tokenConfig import Settings, create_access_token
+from fastapi.security import OAuth2PasswordRequestForm
 
 setting = Settings()
 
@@ -13,7 +14,7 @@ router = APIRouter(
 
 hash = Hash()
 @router.post("/login")
-def login(request: schemas.Login, db: Session = Depends(get_db)):
+def login(request: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == request.username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -25,4 +26,8 @@ def login(request: schemas.Login, db: Session = Depends(get_db)):
     
 
     # Generate JWT Token and return it
-    return user
+
+    access_token = create_access_token(data={"sub": user.email})
+
+    return {"access_token" : access_token,
+            "token_type": "bearer"}
